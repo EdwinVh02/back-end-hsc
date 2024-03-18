@@ -2,14 +2,12 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const authRoutes = require("./routes/authRoutes");
-const userRoutes = require("./routes/userRoutes");
 const roomRoutes = require("./routes/roomRoutes");
 
 const app = express();
 
 app.use(bodyParser.json());
 
-app.use("/api/users", userRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/auth", authRoutes);
 
