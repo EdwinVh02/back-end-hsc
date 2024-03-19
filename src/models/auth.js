@@ -45,5 +45,4 @@ module.exports = {
   generateRememberToken,
   saveRememberToken,
   deleteRememberToken,
-  deleteRememberToken,
 };
