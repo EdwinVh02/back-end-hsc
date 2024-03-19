@@ -74,7 +74,7 @@ async function registerUser(req, res) {
     sexoId,
     contraseña,
     preguntaSecreta,
-    respuestaSecreta,
+    RespuestaSecreta,
   } = req.body;
 
   try {
@@ -104,12 +104,12 @@ async function registerUser(req, res) {
     request.input("usuarioId", sql.Int, usuarioId);
     request.input("contraseña", sql.NVarChar, hashedPassword);
     request.input("preguntaSecreta", sql.NVarChar, preguntaSecreta);
-    request.input("respuestaSecreta", sql.NVarChar, respuestaSecreta);
+    request.input("RespuestaSecreta", sql.NVarChar, RespuestaSecreta);
     request.input("fechaCreacion", sql.DateTime, new Date());
 
     const resultAutenticacion = await request.query(`
       INSERT INTO tblusuario_autenticacion (Id_usuario, Contraseña, PreguntaSecreta, RespuestaSecreta, created_at)
-      VALUES (@usuarioId, @contraseña, @preguntaSecreta, @respuestaSecreta, @fechaCreacion);
+      VALUES (@usuarioId, @contraseña, @preguntaSecreta, @RespuestaSecreta, @fechaCreacion);
     `);
 
     console.log(
@@ -125,8 +125,53 @@ async function registerUser(req, res) {
   }
 }
 
+async function recuperarContrasena(req, res) {
+  const { correo, RespuestaSecreta } = req.body;
+
+  try {
+    const request = pool.request();
+    request.input("correo", sql.NVarChar, correo);
+
+    const result = await request.query(
+      "SELECT Id_usuario, RespuestaSecreta FROM tblusuario WHERE vchcorreo = @correo"
+    );
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    const storedRespuestaSecreta = result.recordset[0].RespuestaSecreta;
+    const userId = result.recordset[0].Id_usuario;
+
+    if (RespuestaSecreta !== storedRespuestaSecreta) {
+      return res.status(400).json({ message: "Respuesta incorrecta" });
+    }
+
+    const nuevaContrasena = generarContrasenaAleatoria();
+
+    const hashedContrasena = await bcrypt.hash(nuevaContrasena, 10);
+
+    request.input("usuarioId", sql.Int, userId);
+    request.input("contraseña", sql.NVarChar, hashedContrasena);
+
+    await request.query(
+      "UPDATE tblusuario_autenticacion SET Contraseña = @contraseña WHERE Id_usuario = @usuarioId"
+    );
+
+    await enviarCorreoElectronico(correo, nuevaContrasena);
+
+    res.status(200).json({
+      message: "Se ha enviado una nueva contraseña a tu correo electrónico",
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error interno del servidor" });
+  }
+}
+
 module.exports = {
   login,
   logout,
   registerUser,
+  recuperarContrasena,
 };
