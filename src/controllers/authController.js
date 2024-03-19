@@ -7,6 +7,7 @@ const {
   generateRememberToken,
   saveRememberToken,
   deleteRememberToken,
+  generarContrasenaAleatoria,
 } = require("../models/auth");
 
 async function login(req, res) {
@@ -132,9 +133,12 @@ async function recuperarContrasena(req, res) {
     const request = pool.request();
     request.input("correo", sql.NVarChar, correo);
 
-    const result = await request.query(
-      "SELECT Id_usuario, RespuestaSecreta FROM tblusuario_autenticacion WHERE vchcorreo = @correo"
-    );
+    const result = await request.query(`
+    SELECT ua.RespuestaSecreta 
+    FROM tblusuario u
+    INNER JOIN tblusuario_autenticacion ua ON u.Id_usuario = ua.Id_usuario
+    WHERE u.vchcorreo = @correo
+  `);
 
     if (result.recordset.length === 0) {
       return res.status(404).json({ message: "Usuario no encontrado" });

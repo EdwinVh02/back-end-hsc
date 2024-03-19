@@ -41,8 +41,53 @@ async function deleteRememberToken(userId) {
   }
 }
 
+function generarContrasenaAleatoria(longitud) {
+  const caracteres =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let contraseña = "";
+
+  for (let i = 0; i < longitud; i++) {
+    const caracterAleatorio = caracteres.charAt(
+      Math.floor(Math.random() * caracteres.length)
+    );
+    contraseña += caracterAleatorio;
+  }
+
+  return contraseña;
+}
+
+const nodemailer = require("nodemailer");
+
+async function enviarCorreoElectronico(destinatario, nuevaContrasena) {
+  // Configurar el transporte
+  const transporter = nodemailer.createTransport({
+    service: "Gmail", // Cambia esto según tu proveedor de correo electrónico
+    auth: {
+      user: "tu_correo@gmail.com", // Cambia esto por tu dirección de correo electrónico
+      pass: "tu_contraseña", // Cambia esto por tu contraseña de correo electrónico
+    },
+  });
+
+  const mensaje = {
+    from: "",
+    to: destinatario,
+    subject: "Nueva Contraseña",
+    text: `Tu nueva contraseña es: ${nuevaContrasena}`,
+  };
+
+  try {
+    // Enviar el correo electrónico
+    const info = await transporter.sendMail(mensaje);
+    console.log("Correo electrónico enviado: ", info.messageId);
+  } catch (error) {
+    console.error("Error al enviar el correo electrónico: ", error);
+    throw error; // Propaga el error para manejarlo donde se llame a la función
+  }
+}
+
 module.exports = {
   generateRememberToken,
   saveRememberToken,
   deleteRememberToken,
+  generarContrasenaAleatoria,
 };
