@@ -133,7 +133,7 @@ async function recuperarContrasena(req, res) {
     request.input("correo", sql.NVarChar, correo);
 
     const result = await request.query(
-      "SELECT Id_usuario, RespuestaSecreta FROM tblusuario WHERE vchcorreo = @correo"
+      "SELECT Id_usuario, RespuestaSecreta FROM tblusuario_autenticacion WHERE vchcorreo = @correo"
     );
 
     if (result.recordset.length === 0) {
