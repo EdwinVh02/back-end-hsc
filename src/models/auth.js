@@ -69,7 +69,7 @@ async function enviarCorreoElectronico(destinatario, nuevaContrasena) {
   });
 
   const mensaje = {
-    from: "",
+    from: "agustinahdez68@gmail.com",
     to: destinatario,
     subject: "Nueva Contraseña",
     text: `Tu nueva contraseña es: ${nuevaContrasena}`,
