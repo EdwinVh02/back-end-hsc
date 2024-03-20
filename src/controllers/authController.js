@@ -8,6 +8,7 @@ const {
   saveRememberToken,
   deleteRememberToken,
   generarContrasenaAleatoria,
+  enviarCorreoElectronico,
 } = require("../models/auth");
 
 async function login(req, res) {
@@ -134,7 +135,7 @@ async function recuperarContrasena(req, res) {
     request.input("correo", sql.NVarChar, correo);
 
     const result = await request.query(`
-    SELECT ua.RespuestaSecreta 
+    SELECT u.Id_usuario, ua.RespuestaSecreta 
     FROM tblusuario u
     INNER JOIN tblusuario_autenticacion ua ON u.Id_usuario = ua.Id_usuario
     WHERE u.vchcorreo = @correo
@@ -151,17 +152,23 @@ async function recuperarContrasena(req, res) {
       return res.status(400).json({ message: "Respuesta incorrecta" });
     }
 
-    const nuevaContrasena = generarContrasenaAleatoria();
+    const nuevaContrasena = generarContrasenaAleatoria(10);
+    console.log("nueva contraseña", nuevaContrasena);
 
     const hashedContrasena = await bcrypt.hash(nuevaContrasena, 10);
 
     request.input("usuarioId", sql.Int, userId);
     request.input("contraseña", sql.NVarChar, hashedContrasena);
 
-    await request.query(
-      "UPDATE tblusuario_autenticacion SET Contraseña = @contraseña WHERE Id_usuario = @usuarioId"
-    );
+    try {
+      const result = await request.query(
+        "UPDATE tblusuario_autenticacion SET Contraseña = @contraseña WHERE Id_usuario = @usuarioId"
+      );
 
+      console.log("Número de filas actualizadas:", result.rowsAffected[0]); // Imprime el número de filas actualizadas
+    } catch (error) {
+      console.error("Error al actualizar la contraseña:", error);
+    }
     await enviarCorreoElectronico(correo, nuevaContrasena);
 
     res.status(200).json({

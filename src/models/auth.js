@@ -1,5 +1,6 @@
 const pool = require("../db");
 const sql = require("mssql");
+const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
 const { JWT_SECRET } = require("../constants"); // Asegúrate de tener definido JWT_SECRET en tu archivo de constantes
 
@@ -56,23 +57,33 @@ function generarContrasenaAleatoria(longitud) {
   return contraseña;
 }
 
-const nodemailer = require("nodemailer");
-
 async function enviarCorreoElectronico(destinatario, nuevaContrasena) {
   // Configurar el transporte
   const transporter = nodemailer.createTransport({
-    service: "Gmail", // Cambia esto según tu proveedor de correo electrónico
+    service: "Gmail",
     auth: {
-      user: "tu_correo@gmail.com", // Cambia esto por tu dirección de correo electrónico
-      pass: "tu_contraseña", // Cambia esto por tu contraseña de correo electrónico
+      user: "skrillexelmejor77@gmail.com",
+      pass: "bhue bmjh jajd rjsy",
     },
   });
 
   const mensaje = {
-    from: "agustinahdez68@gmail.com",
+    from: "HotelSantaCecilia@gmail.com",
     to: destinatario,
     subject: "Nueva Contraseña",
-    text: `Tu nueva contraseña es: ${nuevaContrasena}`,
+    text: `
+Estimado/a ${destinatario},
+Esperamos que este mensaje te encuentre bien. Queremos informarte que hemos recibido tu solicitud para restablecer la contraseña de tu cuenta en el Hotel Santa Cecilia.
+
+Tu nueva contraseña es: ${nuevaContrasena}
+
+Por favor, guarda esta información de manera segura. Si tienes alguna pregunta o necesitas asistencia adicional, no dudes en contactarnos.
+
+¡Gracias por confiar en nosotros y esperamos verte pronto en el Hotel Santa Cecilia!
+
+Atentamente,
+El Equipo del Hotel Santa Cecilia
+    `,
   };
 
   try {
@@ -90,4 +101,5 @@ module.exports = {
   saveRememberToken,
   deleteRememberToken,
   generarContrasenaAleatoria,
+  enviarCorreoElectronico,
 };
