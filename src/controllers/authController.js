@@ -9,6 +9,9 @@ const {
   deleteRememberToken,
   generarContrasenaAleatoria,
   enviarCorreoElectronico,
+  correoExiste,
+  consultarUsuario,
+  actualizarContrasena,
 } = require("../models/auth");
 
 async function login(req, res) {
@@ -80,6 +83,11 @@ async function registerUser(req, res) {
   } = req.body;
 
   try {
+    const correoExistente = await correoExiste(correo);
+    if (correoExistente) {
+      return res.status(400).json({ error: "El correo ya está registrado" });
+    }
+
     const hashedPassword = await bcrypt.hash(contraseña, 10);
 
     const request = pool.request();
@@ -97,11 +105,11 @@ async function registerUser(req, res) {
       VALUES (@sexoId, @nombre, @apellidoP, @apellidoM, @correo, @telefono);
     `);
 
-    console.log("Resultado de la inserción de usuario:", resultUsuario);
+    // console.log("Resultado de la inserción de usuario:", resultUsuario);
 
     const usuarioId = resultUsuario.recordset[0].Id_usuario;
 
-    console.log("ID del nuevo usuario:", usuarioId);
+    // console.log("ID del nuevo usuario:", usuarioId);
 
     request.input("usuarioId", sql.Int, usuarioId);
     request.input("contraseña", sql.NVarChar, hashedPassword);
@@ -114,10 +122,10 @@ async function registerUser(req, res) {
       VALUES (@usuarioId, @contraseña, @preguntaSecreta, @RespuestaSecreta, @fechaCreacion);
     `);
 
-    console.log(
-      "Resultado de la inserción de autenticación:",
-      resultAutenticacion
-    );
+    // console.log(
+    //   "Resultado de la inserción de autenticación:",
+    //   resultAutenticacion
+    // );
 
     res.status(201).json({ message: "Usuario registrado exitosamente" });
   } catch (error) {
@@ -131,44 +139,23 @@ async function recuperarContrasena(req, res) {
   const { correo, RespuestaSecreta } = req.body;
 
   try {
-    const request = pool.request();
-    request.input("correo", sql.NVarChar, correo);
-
-    const result = await request.query(`
-    SELECT u.Id_usuario, ua.RespuestaSecreta 
-    FROM tblusuario u
-    INNER JOIN tblusuario_autenticacion ua ON u.Id_usuario = ua.Id_usuario
-    WHERE u.vchcorreo = @correo
-  `);
-
-    if (result.recordset.length === 0) {
+    const usuarios = await consultarUsuario(correo);
+    if (usuarios.length === 0) {
       return res.status(404).json({ message: "Usuario no encontrado" });
     }
 
-    const storedRespuestaSecreta = result.recordset[0].RespuestaSecreta;
-    const userId = result.recordset[0].Id_usuario;
+    const storedRespuestaSecreta = usuarios[0].RespuestaSecreta;
+    const userId = usuarios[0].Id_usuario;
 
     if (RespuestaSecreta !== storedRespuestaSecreta) {
       return res.status(400).json({ message: "Respuesta incorrecta" });
     }
 
     const nuevaContrasena = generarContrasenaAleatoria(10);
-    console.log("nueva contraseña", nuevaContrasena);
+    console.log("Nueva contraseña generada:", nuevaContrasena);
 
-    const hashedContrasena = await bcrypt.hash(nuevaContrasena, 10);
+    await actualizarContrasena(userId, nuevaContrasena);
 
-    request.input("usuarioId", sql.Int, userId);
-    request.input("contraseña", sql.NVarChar, hashedContrasena);
-
-    try {
-      const result = await request.query(
-        "UPDATE tblusuario_autenticacion SET Contraseña = @contraseña WHERE Id_usuario = @usuarioId"
-      );
-
-      console.log("Número de filas actualizadas:", result.rowsAffected[0]); // Imprime el número de filas actualizadas
-    } catch (error) {
-      console.error("Error al actualizar la contraseña:", error);
-    }
     await enviarCorreoElectronico(correo, nuevaContrasena);
 
     res.status(200).json({
@@ -179,7 +166,6 @@ async function recuperarContrasena(req, res) {
     res.status(500).json({ message: "Error interno del servidor" });
   }
 }
-
 module.exports = {
   login,
   logout,

@@ -1,5 +1,6 @@
 const pool = require("../db");
 const sql = require("mssql");
+const bcrypt = require("bcrypt");
 const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
 const { JWT_SECRET } = require("../constants"); // Asegúrate de tener definido JWT_SECRET en tu archivo de constantes
@@ -96,10 +97,60 @@ El Equipo del Hotel Santa Cecilia
   }
 }
 
+async function correoExiste(correo) {
+  try {
+    const request = pool.request();
+    request.input("correo", sql.NVarChar, correo);
+
+    const result = await request.query(
+      "SELECT Id_usuario FROM tblusuario WHERE vchcorreo = @correo"
+    );
+
+    return result.recordset.length > 0;
+  } catch (error) {
+    console.error(error);
+    throw new Error("Error interno del servidor");
+  }
+}
+
+async function consultarUsuario(correo) {
+  const request = pool.request();
+  request.input("correo", sql.NVarChar, correo);
+
+  const result = await request.query(`
+    SELECT u.Id_usuario, ua.RespuestaSecreta 
+    FROM tblusuario u
+    INNER JOIN tblusuario_autenticacion ua ON u.Id_usuario = ua.Id_usuario
+    WHERE u.vchcorreo = @correo
+  `);
+
+  return result.recordset;
+}
+
+async function actualizarContrasena(userId, nuevaContrasena) {
+  const hashedContrasena = await bcrypt.hash(nuevaContrasena, 10);
+  const request = pool.request();
+  request.input("usuarioId", sql.Int, userId);
+  request.input("contraseña", sql.NVarChar, hashedContrasena);
+
+  try {
+    const result = await request.query(
+      "UPDATE tblusuario_autenticacion SET Contraseña = @contraseña WHERE Id_usuario = @usuarioId"
+    );
+
+    // console.log("Número de filas actualizadas:", result.rowsAffected[0]);
+  } catch (error) {
+    console.error("Error al actualizar la contraseña:", error);
+    throw error;
+  }
+}
 module.exports = {
   generateRememberToken,
   saveRememberToken,
   deleteRememberToken,
   generarContrasenaAleatoria,
   enviarCorreoElectronico,
+  correoExiste,
+  consultarUsuario,
+  actualizarContrasena,
 };
