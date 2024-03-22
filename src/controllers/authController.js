@@ -22,7 +22,7 @@ async function login(req, res) {
     request.input("correo", sql.NVarChar, correo);
 
     const result = await request.query(
-      "SELECT Id_usuario, Contraseña, remember_token FROM tblusuario_autenticacion WHERE Id_usuario = (SELECT Id_usuario FROM tblusuario WHERE vchcorreo = @correo)"
+      "SELECT Id_usuario, Contraseña, remember_token FROM dbo.view_login  WHERE (vchcorreo = @correo)"
     );
 
     if (result.recordset.length === 0) {
