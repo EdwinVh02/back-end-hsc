@@ -22,7 +22,10 @@ async function login(req, res) {
     request.input("correo", sql.NVarChar, correo);
 
     const result = await request.query(
-      "SELECT Id_usuario, Contraseña, remember_token FROM dbo.view_login  WHERE (vchcorreo = @correo)"
+      "SELECT u.Id_usuario, u.Contraseña, u.remember_token, r.rol " +
+      "FROM tbl_login AS u " +
+      "JOIN dbo.tblusuario AS r ON u.Id_usuario = r.Id_usuario " +
+      "WHERE (u.vchcorreo = @correo)"
     );
 
     if (result.recordset.length === 0) {
@@ -33,6 +36,7 @@ async function login(req, res) {
 
     const storedPassword = result.recordset[0].Contraseña;
     const userId = result.recordset[0].Id_usuario;
+    const userRole = result.recordset[0].rol;
 
     const passwordMatch = await bcrypt.compare(contraseña, storedPassword);
 
@@ -50,12 +54,13 @@ async function login(req, res) {
     await saveRememberToken(userId, rememberToken);
 
     res.setHeader("Authorization", `Bearer ${token}`);
-    res.json({ token, rememberToken });
+    res.json({ token, rememberToken, role: userRole });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error interno del servidor" });
   }
 }
+
 
 async function logout(req, res) {
   try {
